@@ -1,21 +1,35 @@
 """
 Django settings for locals project.
+Production Ready Version
 """
 
 import os
 from pathlib import Path
-from urllib.parse import urlparse, parse_qsl
+import dj_database_url
+from dotenv import load_dotenv
+
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Quick-start development settings
-SECRET_KEY = 'django-insecure-dev-key-locals-project-hardcoded'
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-fallback-dev-key')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Checks if DEBUG is explicitly set to 'True' in .env, otherwise defaults to False
+DEBUG = os.environ.get('DEBUG') == 'True'
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '*', 'vyom-tau.vercel.app']
+# Parse ALLOWED_HOSTS from .env (comma separated)
+ALLOWED_HOSTS = [
+    '127.0.0.1', 
+    'localhost', 
+    'vyom-tau.vercel.app', 
+]
+# ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -38,7 +52,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # <--- Top Priority
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware', # Essential for static files in Prod
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -67,39 +81,28 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
+# ==========================================
+# DATABASE CONFIGURATION
+# ==========================================
 
-
-# Example: "postgres://alex:password@ep-cool.neon.tech/neondb?sslmode=require"
-DATABASE_URL='postgresql://neondb_owner:npg_J0Zja4FQiSTz@ep-dry-resonance-a1wpiif3-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require'
-
-# Parse the URL
-if DATABASE_URL and "postgres" in DATABASE_URL:
-    try:
-        tmpPostgres = urlparse(DATABASE_URL)
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'NAME': tmpPostgres.path.lstrip('/'),
-                'USER': tmpPostgres.username,
-                'PASSWORD': tmpPostgres.password,
-                'HOST': tmpPostgres.hostname,
-                'PORT': tmpPostgres.port or 5432,
-                'OPTIONS': dict(parse_qsl(tmpPostgres.query)),
-            }
-        }
-    except Exception as e:
-        print(f"Error parsing DATABASE_URL: {e}")
-        # Fallback to prevent crash, though it won't connect
-        DATABASES = {}
+# This replaces your 20 lines of manual parsing code.
+# dj_database_url automatically parses the DATABASE_URL from .env
+if 'DATABASE_URL' in os.environ:
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.environ.get('DATABASE_URL'),
+            conn_max_age=600,
+            ssl_require=True
+        )
+    }
 else:
-    print("⚠️ WARNING: Using SQLite because DATABASE_URL is missing or invalid.")
+    print("⚠️ WARNING: Using SQLite because DATABASE_URL is missing.")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
-
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -115,9 +118,15 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files
+# ==========================================
+# STATIC FILES (WhiteNoise Configuration)
+# ==========================================
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Enable WhiteNoise to serve static files in production
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -139,8 +148,18 @@ REST_FRAMEWORK = {
     ],
 }
 
-# 3. CORS (Open for Dev)
-CORS_ALLOW_ALL_ORIGINS = True
+# 3. CORS SETTINGS
+# In production, DEBUG is False, so we need to be specific
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = [
+        "https://vyom-tau.vercel.app",
+        # Add your frontend domain here
+        "http://localhost:3000",
+    ]
+
 CORS_ALLOW_CREDENTIALS = True
 
 # 4. Media
