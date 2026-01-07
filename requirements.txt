@@ -15,4 +15,4 @@ tzdata==2025.3
 gunicorn
 whitenoise
 dj_database_url
-rest_framework_simplejwt
+djangorestframework-simplejwt
