@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import dj_database_url
 from dotenv import load_dotenv
+from datetime import timedelta
 
 
 # Load environment variables from .env file
@@ -27,6 +28,10 @@ ALLOWED_HOSTS = [
     '127.0.0.1', 
     'localhost', 
     'vyom-backend.onrender.com'
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://vyom-backend.onrender.com',
 ]
 # ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 
@@ -78,6 +83,19 @@ TEMPLATES = [
         },
     },
 ]
+
+SIMPLE_JWT = {
+    # This controls how long you stay logged in. 
+    # Set to 1 day so you don't get logged out quickly.
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    
+    # Refresh tokens allow getting new access tokens without logging in again
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
